@@ -1,0 +1,1580 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>回到课堂</title>
+<meta name="theme-color" content="#2b664f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="回到课堂">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<style>
+/* Layout: one phone-width column read like a class timetable sheet — ruled rows, 节次 in mono on the left, chalkboard green as the only accent, tab bar at the bottom. */
+:root {
+  --bg: #f0f3f0;
+  --surface: #fbfcfb;
+  --sunken: #e3e9e5;
+  --ink: #16211c;
+  --muted: #56665e;
+  --line: #d2dbd5;
+  --accent: #2b664f;
+  --accent-soft: #dceae2;
+  --accent-ink: #f6faf7;
+  --ok: #287b48;
+  --ok-soft: #dcefe2;
+  --warn: #8f5a12;
+  --warn-soft: #f5e8cf;
+  --bad: #ad3622;
+  --bad-soft: #f6dfd9;
+  --font-display: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131d18; --surface: #1a2721; --sunken: #23342b; --ink: #e6eee8; --muted: #9cafa5; --line: #2d3f36;
+    --accent: #80c6a6; --accent-soft: #213b2f; --accent-ink: #0e1c15;
+    --ok: #6bd08f; --ok-soft: #1d3a29; --warn: #e2ac57; --warn-soft: #3a2f1d; --bad: #f0846c; --bad-soft: #42251e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131d18; --surface: #1a2721; --sunken: #23342b; --ink: #e6eee8; --muted: #9cafa5; --line: #2d3f36;
+  --accent: #80c6a6; --accent-soft: #213b2f; --accent-ink: #0e1c15;
+  --ok: #6bd08f; --ok-soft: #1d3a29; --warn: #e2ac57; --warn-soft: #3a2f1d; --bad: #f0846c; --bad-soft: #42251e;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 560px; margin: 0 auto; padding-inline: 16px; padding-block: 12px calc(96px + env(safe-area-inset-bottom, 0px)); }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 6px 12px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .06em; }
+.dateline { font-family: var(--font-data); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.banner { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 16px; }
+
+#view { display: grid; gap: 26px; }
+.block { display: grid; gap: 10px; min-width: 0; }
+.h1 { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.3; margin: 0; text-wrap: balance; }
+.h { font-family: var(--font-display); font-weight: 600; font-size: 17px; line-height: 1.4; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; }
+.muted { color: var(--muted); margin: 0; }
+.note { margin: 0; color: var(--muted); }
+.row-between { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; }
+.row-end { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stack { display: grid; gap: 8px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--surface); padding: 6px 14px; border-radius: 999px; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.btn { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); padding: 9px 16px; border-radius: 8px; font-weight: 600; line-height: 1.3; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.danger { background: transparent; border-color: var(--bad); color: var(--bad); }
+.btn.sm { padding: 5px 11px; font-size: 13px; font-weight: 500; }
+.btn.wide { width: 100%; }
+
+label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+input:not([type="checkbox"]), select, textarea { width: 100%; min-width: 0; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 8px 10px; font-size: 15px; }
+textarea { resize: vertical; }
+.inline-form { display: flex; gap: 8px; }
+.inline-form input { flex: 1; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+
+.minstep { border: 1px dashed var(--accent); background: var(--accent-soft); border-radius: var(--radius); padding: 14px; display: grid; gap: 6px; justify-items: start; }
+.minstep-k { font-size: 13px; color: var(--muted); }
+.minstep-v { font-size: 18px; font-weight: 600; }
+.care { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 4px; font-size: 14px; }
+
+.sheet { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.sheet-row { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.period { display: grid; align-content: start; font-family: var(--font-data); font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.period small { color: var(--muted); font-size: 12px; }
+.sheet-main { min-width: 0; display: grid; gap: 2px; }
+.cname { font-weight: 600; overflow-wrap: anywhere; }
+.seg { grid-column: 2; justify-self: start; display: inline-flex; margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); color: var(--muted); padding: 6px 14px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on.present { background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+.seg button.on.leave { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+.seg button.on.absent { background: var(--bad-soft); color: var(--bad); font-weight: 600; }
+.row-actions { grid-column: 2; display: flex; gap: 8px; margin-top: 6px; }
+.day-h { margin-top: 4px; }
+
+.meter { display: grid; gap: 3px; margin-top: 4px; font-size: 12px; color: var(--muted); }
+.meter-bar { height: 6px; background: var(--sunken); border-radius: 3px; overflow: hidden; }
+.meter-bar i { display: block; height: 100%; background: var(--ok); }
+.meter.warn .meter-bar i { background: var(--warn); }
+.meter.bad .meter-bar i, .meter.over .meter-bar i { background: var(--bad); }
+.meter.over span { color: var(--bad); font-weight: 600; }
+
+.timer-face { font-family: var(--font-data); font-weight: 600; font-size: clamp(52px, 17vw, 76px); line-height: 1; text-align: center; font-variant-numeric: tabular-nums; padding-block: 8px 2px; }
+.timer-sub { text-align: center; color: var(--muted); font-size: 13px; min-height: 1.6em; }
+.timer-controls { display: grid; gap: 10px; }
+
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; align-items: end; }
+.wk-col { display: grid; gap: 4px; justify-items: center; }
+.wk-min { font-family: var(--font-data); font-size: 11px; color: var(--muted); min-height: 1.3em; font-variant-numeric: tabular-nums; }
+.wk-bar { width: 100%; max-width: 30px; height: 56px; background: var(--sunken); border-radius: 4px; display: flex; align-items: flex-end; overflow: hidden; }
+.wk-bar i { display: block; width: 100%; background: var(--accent); }
+.wk-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; min-height: 6px; max-width: 30px; }
+.wk-dots b, .legend b { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+b.p { background: var(--ok); }
+b.l { background: var(--warn); }
+b.m { background: var(--bad); }
+.wk-label { font-size: 12px; color: var(--muted); }
+.wk-col.today .wk-label { color: var(--accent); font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--accent); }
+
+.todos { list-style: none; margin: 0; padding: 0; display: grid; }
+.todos li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+.todo { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 15px; min-width: 0; }
+.todo input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.todo span { overflow-wrap: anywhere; }
+.done { text-decoration: line-through; color: var(--muted); }
+.x { border: 0; background: none; color: var(--muted); font-size: 13px; padding: 4px 6px; flex: none; }
+
+.empty { border: 1px dashed var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 6px; justify-items: start; }
+
+.credit-card { display: grid; gap: 6px; }
+.big { font-family: var(--font-data); font-weight: 600; font-size: 42px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.big small { font-size: 16px; color: var(--muted); font-weight: 500; }
+.cbar { position: relative; height: 12px; background: var(--sunken); border-radius: 6px; margin-block: 26px 10px; }
+.cbar > i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 6px; }
+.tick { position: absolute; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; background: var(--ink); }
+.tick span { position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--font-data); font-size: 11px; font-weight: 600; color: var(--muted); }
+.tick.end span { left: auto; right: 0; transform: none; }
+.facts { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+.facts strong { color: var(--ink); }
+
+.group-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.courses { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.course { border-bottom: 1px solid var(--line); }
+.course-head { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 11px 0; background: none; border: 0; text-align: left; color: var(--ink); }
+.credits { font-family: var(--font-data); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st { font-size: 12px; padding: 1px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.st.enrolled { color: var(--accent); border-color: var(--accent); }
+.st.passed { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.st.skip { text-decoration: line-through; }
+.editor { display: grid; gap: 10px; padding: 2px 0 14px; }
+.rules { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+.rule-line { margin: 0; font-size: 13px; color: var(--warn); }
+
+.notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.note-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
+.note-card.done .note-text { color: var(--muted); }
+.note-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.tag { font-size: 12px; color: var(--accent); background: var(--accent-soft); padding: 1px 8px; border-radius: 999px; }
+.note-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.answer { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--sunken); border-radius: 8px; padding: 10px 12px; font-size: 14px; line-height: 1.7; }
+.note-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tabbar-inner { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 7px; background: none; border: 0; color: var(--muted); font-size: 12px; }
+.tab svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.tab[aria-selected="true"] { color: var(--accent); font-weight: 600; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(74px + env(safe-area-inset-bottom, 0px)); z-index: 20; max-width: calc(100% - 32px); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 16px rgba(0, 0, 0, .18); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">回到课堂</div>
+    <div class="dateline" id="dateline"></div>
+  </header>
+  <div id="banner"></div>
+  <main id="view"></main>
+</div>
+<nav class="tabbar" aria-label="切换页面">
+  <div class="tabbar-inner" role="tablist">
+    <button class="tab" role="tab" data-tab="today" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9.5h16M9 3v4M15 3v4"/><circle cx="12" cy="14.5" r="1.5"/></svg>今天</button>
+    <button class="tab" role="tab" data-tab="timetable" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M3.5 15h17M9.5 4v16M15 4v16"/></svg>课表</button>
+    <button class="tab" role="tab" data-tab="credits" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-7M10 20V9M15 20v-4M20 20V5"/></svg>学分</button>
+    <button class="tab" role="tab" data-tab="notes" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v12h-8l-6 4z"/><path d="M10.2 8.6a1.9 1.9 0 1 1 2.5 1.8c-.4.2-.7.5-.7.9v.5M12 13.7v.1"/></svg>问题本</button>
+  </div>
+</nav>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const $ = (sel) => document.querySelector(sel);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pad = (n) => String(n).padStart(2, '0');
+  const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const WD = ['日', '一', '二', '三', '四', '五', '六'];
+  const clone = (o) => (o == null ? o : JSON.parse(JSON.stringify(o)));
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const fmt = (n) => String(Math.round(Number(n) * 100) / 100);
+  // Dates follow China time (UTC+8) whatever zone the device is set to, so a phone in China and a
+  // computer set to another zone agree on what "today" is. cn(ms) is a Date whose local getters read China time.
+  const cn = (ms) => {
+    const t = ms == null ? Date.now() : Number(ms);
+    const d = new Date(t + (480 + new Date(t).getTimezoneOffset()) * 60000);
+    const fix = new Date(t).getTimezoneOffset() - d.getTimezoneOffset(); // the device's DST switched in between
+    return fix ? new Date(d.getTime() - fix * 60000) : d;
+  };
+  const isoWd = (d) => (d.getDay() === 0 ? 7 : d.getDay());
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+  const LS = 'hdkt:';
+  const lget = (k, f) => { try { const v = localStorage.getItem(LS + k); return v == null ? f : JSON.parse(v); } catch (e) { return f; } };
+  const lset = (k, v) => { try { localStorage.setItem(LS + k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+  const ldel = (k) => { try { localStorage.removeItem(LS + k); } catch (e) { /* storage unavailable */ } };
+  const storageOk = (() => { try { localStorage.setItem(LS + 'probe', '1'); localStorage.removeItem(LS + 'probe'); return true; } catch (e) { return false; } })();
+
+  const PATHS = { courses: 'app/courses', timetable: 'app/timetable', settings: 'app/settings', notes: 'app/notes' };
+  const STATUS = [['todo', '待报名'], ['enrolled', '在修'], ['passed', '已过'], ['skip', '不重修']];
+  const GROUPS = [
+    ['fall', '秋季学期开的', '这学期就能重修或跟班上。'],
+    ['spring', '春季学期开的', '下学期再修。'],
+    ['pe', '体育', '必修，不能免修，不及格没有补考，只能重修。'],
+    ['other', '我加的课', ''],
+    ['elective', '任选课', '不一定要重修，也可以换别的任选课凑学分。'],
+  ];
+  const FORM_IDS = ['cfCourse', 'cfNewName', 'cfNewHours', 'cfWeekday', 'cfTime', 'cfStart', 'cfEnd', 'cfPlace', 'cfParity', 'cfWeekFrom', 'cfWeekTo'];
+
+  const S = {
+    mode: 'loading',
+    loaded: { courses: false, timetable: false, settings: false, notes: false, logs: false },
+    courses: [], timetable: [], settings: {}, notes: [], logs: {},
+    readOnly: false, confirmImport: false, confirmSyncOff: false,
+    tab: lget('tab', 'today'),
+    openCourse: null, addingClass: false, editClass: null, confirmDel: null,
+    notesFilter: 'open', copyFallback: null, lastNoteCourse: '',
+    timerSel: lget('timerSel', { courseId: '', minutes: 25 }),
+  };
+  if (!['today', 'timetable', 'credits', 'notes'].includes(S.tab)) S.tab = 'today';
+  if (![15, 25, 45].includes(S.timerSel.minutes)) S.timerSel.minutes = 25;
+  let T = lget('timer', null);
+  const clearOnRender = new Set();
+  const ready = () => S.mode !== 'loading' && Object.values(S.loaded).every(Boolean);
+
+  /* ---------- storage: this device's browser first (localStorage); optional sync with a private GitHub repo ---------- */
+  const LIST_KEYS = ['courses', 'timetable', 'notes'];
+  const LIST_FIELD = { courses: 'list', timetable: 'classes', notes: 'items' };
+  const listOf = (key) => (key === 'courses' ? S.courses : key === 'timetable' ? S.timetable : S.notes);
+  const isObj = (o) => !!o && typeof o === 'object' && !Array.isArray(o);
+  const emptyMeta = () => ({ lists: { courses: { u: {}, del: {} }, timetable: { u: {}, del: {} }, notes: { u: {}, del: {} } }, settings: 0, days: {} });
+  function loadMeta() {
+    const m = lget('meta', null);
+    const e = emptyMeta();
+    if (!isObj(m)) return e;
+    LIST_KEYS.forEach((k) => {
+      const l = isObj(m.lists) && isObj(m.lists[k]) ? m.lists[k] : {};
+      e.lists[k] = { u: isObj(l.u) ? l.u : {}, del: isObj(l.del) ? l.del : {} };
+    });
+    e.settings = Number(m.settings) || 0;
+    e.days = isObj(m.days) ? m.days : {};
+    return e;
+  }
+  // META remembers when each piece last changed, so two devices can be merged piece by piece:
+  // list items by id (newer wins, deletions kept as tombstones), settings as a whole, and per day:
+  // energy, todos, each class's attendance; focus sessions are only ever added, so they are unioned.
+  let META = loadMeta();
+  const saveMeta = () => lset('meta', META);
+  function docBody(key) {
+    if (key === 'courses') return { list: S.courses };
+    if (key === 'timetable') return { classes: S.timetable };
+    if (key === 'notes') return { items: S.notes };
+    return Object.assign({}, S.settings);
+  }
+  function saveFailed() { toast('没存上：这个浏览器存不了记录，或者存储空间满了。'); }
+  // Compare with what is stored and stamp what changed. Must run before the new version is written.
+  function stamp(key, now) {
+    if (key === 'settings') {
+      if (JSON.stringify(lget('doc:' + PATHS.settings, {})) !== JSON.stringify(docBody('settings'))) META.settings = now;
+      return;
+    }
+    const prevDoc = lget('doc:' + PATHS[key], null);
+    const prevList = ((prevDoc && prevDoc[LIST_FIELD[key]]) || []).filter((x) => isObj(x) && x.id != null);
+    const prev = new Map(prevList.map((x) => [String(x.id), JSON.stringify(x)]));
+    const m = META.lists[key];
+    const seen = new Set();
+    listOf(key).forEach((x) => {
+      if (!isObj(x) || x.id == null) return;
+      const id = String(x.id);
+      seen.add(id);
+      if (prev.get(id) !== JSON.stringify(x)) { m.u[id] = now; delete m.del[id]; }
+    });
+    prev.forEach((_, id) => { if (!seen.has(id)) { m.del[id] = now; delete m.u[id]; } });
+  }
+  function saveDoc(key) {
+    if (!ready()) return;
+    stamp(key, Date.now());
+    if (!(lset('doc:' + PATHS[key], docBody(key)) && saveMeta())) saveFailed();
+    scheduleSync();
+  }
+  function deepMerge(t, p) {
+    Object.keys(p).forEach((k) => {
+      const v = p[k];
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        if (!t[k] || typeof t[k] !== 'object' || Array.isArray(t[k])) t[k] = {};
+        deepMerge(t[k], v);
+      } else {
+        t[k] = v;
+      }
+    });
+  }
+  function patchDay(dk, patch) {
+    if (!ready()) return;
+    const now = Date.now();
+    const dm = META.days[dk] || (META.days[dk] = {});
+    if ('energy' in patch) dm.energy = now;
+    if ('todos' in patch) dm.todos = now;
+    if (isObj(patch.attend)) {
+      if (!isObj(dm.attend)) dm.attend = {};
+      Object.keys(patch.attend).forEach((cid) => { dm.attend[cid] = now; });
+    }
+    const mk = dk.slice(0, 7);
+    const month = S.logs[mk] || (S.logs[mk] = { days: {} });
+    if (!month.days) month.days = {};
+    const day = month.days[dk] || (month.days[dk] = {});
+    deepMerge(day, patch);
+    if (!(lset('doc:log/' + mk, month) && saveMeta())) saveFailed();
+    scheduleSync();
+  }
+  const focusKey = (f) => `${f.at}|${f.c}|${f.m}`;
+  function unionFocus(a, b) {
+    const seen = new Set();
+    const out = [];
+    [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])].forEach((f) => {
+      if (!isObj(f)) return;
+      const k = focusKey(f);
+      if (!seen.has(k)) { seen.add(k); out.push(clone(f)); }
+    });
+    return out.sort((x, y) => String(x.at).localeCompare(String(y.at)));
+  }
+  const hasData = () => S.courses.length > 0 || S.timetable.length > 0 || S.notes.length > 0 || Object.keys(S.logs).length > 0 || S.settings.baseEarned != null;
+  const backupJson = () => JSON.stringify({ exportedAt: new Date().toISOString(), courses: S.courses, timetable: S.timetable, settings: S.settings, notes: S.notes, logs: S.logs });
+  function parseBackup(text) {
+    let d;
+    try { d = JSON.parse(String(text).trim()); } catch (e) { toast('这段文字不完整，检查一下是不是整段都复制上了。'); return null; }
+    if (!isObj(d) || (!Array.isArray(d.courses) && !isObj(d.settings))) { toast('这段文字不是「回到课堂」的备份。'); return null; }
+    return d;
+  }
+  // Importing a backup merges it in: whatever the backup contains wins, nothing else is deleted.
+  function importData(d) {
+    const now = Date.now();
+    LIST_KEYS.forEach((key) => {
+      const incoming = Array.isArray(d[key]) ? d[key].filter((x) => isObj(x) && x.id != null) : [];
+      if (!incoming.length) return;
+      const list = listOf(key).slice();
+      incoming.forEach((x) => {
+        const i = list.findIndex((y) => String(y.id) === String(x.id));
+        if (i >= 0) list[i] = clone(x); else list.push(clone(x));
+      });
+      if (key === 'courses') S.courses = list;
+      else if (key === 'timetable') S.timetable = list;
+      else S.notes = list.sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
+      stamp(key, now);
+    });
+    if (isObj(d.settings)) { S.settings = Object.assign({}, S.settings, clone(d.settings)); stamp('settings', now); }
+    if (isObj(d.logs)) {
+      Object.keys(d.logs).forEach((mk) => {
+        const m = d.logs[mk];
+        if (!/^\d{4}-\d{2}$/.test(mk) || !isObj(m) || !isObj(m.days)) return;
+        Object.keys(m.days).forEach((dk) => {
+          const day = m.days[dk];
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dk) || dk.slice(0, 7) !== mk || !isObj(day)) return;
+          const month = S.logs[mk] || (S.logs[mk] = { days: {} });
+          if (!isObj(month.days)) month.days = {};
+          const cur = month.days[dk] || (month.days[dk] = {});
+          const dm = META.days[dk] || (META.days[dk] = {});
+          if ('energy' in day) { cur.energy = day.energy; dm.energy = now; }
+          if (Array.isArray(day.todos)) { cur.todos = clone(day.todos); dm.todos = now; }
+          if (isObj(day.attend)) {
+            cur.attend = Object.assign({}, isObj(cur.attend) ? cur.attend : {}, clone(day.attend));
+            if (!isObj(dm.attend)) dm.attend = {};
+            Object.keys(day.attend).forEach((cid) => { dm.attend[cid] = now; });
+          }
+          if (Array.isArray(day.focus)) cur.focus = unionFocus(cur.focus, day.focus);
+        });
+      });
+    }
+    let ok = saveMeta();
+    LIST_KEYS.concat('settings').forEach((key) => { if (!lset('doc:' + PATHS[key], docBody(key))) ok = false; });
+    Object.keys(S.logs).forEach((mk) => { if (!lset('doc:log/' + mk, S.logs[mk])) ok = false; });
+    if (!ok) saveFailed();
+    scheduleSync();
+    return ok;
+  }
+
+  /* ---------- merging two devices' copies ---------- */
+  function canon(v) {
+    if (Array.isArray(v)) return '[' + v.map((x) => (x === undefined ? 'null' : canon(x))).join(',') + ']';
+    if (isObj(v)) return '{' + Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+    return JSON.stringify(v);
+  }
+  const snapshot = () => ({ v: 1, courses: S.courses, timetable: S.timetable, notes: S.notes, settings: S.settings, logs: S.logs, meta: META });
+  function mergeList(a, ma, b, mb) {
+    const A = new Map((Array.isArray(a) ? a : []).filter((x) => isObj(x) && x.id != null).map((x) => [String(x.id), x]));
+    const B = new Map((Array.isArray(b) ? b : []).filter((x) => isObj(x) && x.id != null).map((x) => [String(x.id), x]));
+    const au = (isObj(ma) && isObj(ma.u)) ? ma.u : {}, ad = (isObj(ma) && isObj(ma.del)) ? ma.del : {};
+    const bu = (isObj(mb) && isObj(mb.u)) ? mb.u : {}, bd = (isObj(mb) && isObj(mb.del)) ? mb.del : {};
+    const u = {}, del = {}, keep = new Map();
+    new Set([...A.keys(), ...B.keys(), ...Object.keys(ad), ...Object.keys(bd)]).forEach((id) => {
+      let best = null;
+      if (A.has(id)) best = { t: Number(au[id]) || 0, item: A.get(id) };
+      if (B.has(id)) { const tb = Number(bu[id]) || 0; if (!best || tb > best.t) best = { t: tb, item: B.get(id) }; }
+      const dt = Math.max(Number(ad[id]) || 0, Number(bd[id]) || 0);
+      if (dt && (!best || dt >= best.t)) { del[id] = dt; return; }
+      if (best) { keep.set(id, best.item); if (best.t) u[id] = best.t; }
+    });
+    const order = [...A.keys(), ...[...B.keys()].filter((id) => !A.has(id))];
+    return { list: order.filter((id) => keep.has(id)).map((id) => clone(keep.get(id))), meta: { u, del } };
+  }
+  function flatDays(logs) {
+    const o = {};
+    if (isObj(logs)) Object.values(logs).forEach((m) => { if (isObj(m) && isObj(m.days)) Object.keys(m.days).forEach((dk) => { if (isObj(m.days[dk])) o[dk] = m.days[dk]; }); });
+    return o;
+  }
+  function mergeDays(la, ma, lb, mb) {
+    const A = flatDays(la), B = flatDays(lb);
+    const MA = isObj(ma) ? ma : {}, MB = isObj(mb) ? mb : {};
+    const logs = {}, meta = {};
+    [...new Set([...Object.keys(A), ...Object.keys(B)])].sort().forEach((dk) => {
+      const a = A[dk] || {}, b = B[dk] || {};
+      const am = isObj(MA[dk]) ? MA[dk] : {}, bm = isObj(MB[dk]) ? MB[dk] : {};
+      const d = {}, m = {};
+      ['energy', 'todos'].forEach((f) => {
+        const ta = Number(am[f]) || 0, tb = Number(bm[f]) || 0;
+        const src = tb > ta ? b : ta > tb ? a : (f in a ? a : b);
+        if (f in src) d[f] = clone(src[f]);
+        if (Math.max(ta, tb)) m[f] = Math.max(ta, tb);
+      });
+      const aa = isObj(a.attend) ? a.attend : {}, ba = isObj(b.attend) ? b.attend : {};
+      const aam = isObj(am.attend) ? am.attend : {}, bam = isObj(bm.attend) ? bm.attend : {};
+      const att = {}, attm = {};
+      [...new Set([...Object.keys(aa), ...Object.keys(ba)])].forEach((cid) => {
+        const ta = Number(aam[cid]) || 0, tb = Number(bam[cid]) || 0;
+        const v = tb > ta ? (ba[cid] || aa[cid]) : (aa[cid] || ba[cid]);
+        if (v) att[cid] = clone(v);
+        if (Math.max(ta, tb)) attm[cid] = Math.max(ta, tb);
+      });
+      if (Object.keys(att).length) d.attend = att;
+      if (Object.keys(attm).length) m.attend = attm;
+      const focus = unionFocus(a.focus, b.focus);
+      if (focus.length) d.focus = focus;
+      const mk = dk.slice(0, 7);
+      (logs[mk] || (logs[mk] = { days: {} })).days[dk] = d;
+      if (Object.keys(m).length) meta[dk] = m;
+    });
+    return { logs, meta };
+  }
+  function mergeAll(L, R) {
+    const RR = isObj(R) ? R : {};
+    const lm = isObj(L.meta) ? L.meta : emptyMeta(), rm = isObj(RR.meta) ? RR.meta : {};
+    const lml = isObj(lm.lists) ? lm.lists : {}, rml = isObj(rm.lists) ? rm.lists : {};
+    const out = { v: 1 }, meta = { lists: {}, settings: 0, days: {} };
+    LIST_KEYS.forEach((k) => {
+      const r = mergeList(L[k], lml[k], RR[k], rml[k]);
+      out[k] = k === 'notes' ? r.list.sort((x, y) => (Number(y.at) || 0) - (Number(x.at) || 0)) : r.list;
+      meta.lists[k] = r.meta;
+    });
+    const ts = Number(lm.settings) || 0, tr = Number(rm.settings) || 0;
+    const lEmpty = !isObj(L.settings) || !Object.keys(L.settings).length;
+    out.settings = clone(tr > ts || (tr === ts && lEmpty) ? (isObj(RR.settings) ? RR.settings : {}) : (isObj(L.settings) ? L.settings : {}));
+    meta.settings = Math.max(ts, tr);
+    const dm = mergeDays(L.logs, lm.days, RR.logs, rm.days);
+    out.logs = dm.logs;
+    meta.days = dm.meta;
+    out.meta = meta;
+    return out;
+  }
+  function applySnapshot(M) {
+    S.courses = M.courses; S.timetable = M.timetable; S.notes = M.notes; S.settings = M.settings; S.logs = M.logs; META = M.meta;
+    let ok = saveMeta();
+    LIST_KEYS.concat('settings').forEach((key) => { if (!lset('doc:' + PATHS[key], docBody(key))) ok = false; });
+    Object.keys(S.logs).forEach((mk) => { if (!lset('doc:log/' + mk, S.logs[mk])) ok = false; });
+    if (!ok) saveFailed();
+  }
+
+  /* ---------- sync with a private GitHub repository (only when a token is set) ---------- */
+  const SYNC_DEFAULT = { owner: 'lqy23343', repo: 'back-to-class-data', path: 'data.json', api: 'https://api.github.com', token: '' };
+  let SY = Object.assign({}, SYNC_DEFAULT, isObj(lget('sync', null)) ? lget('sync', null) : {});
+  const SYN = { busy: false, again: false, manual: false, timer: null, last: Number(lget('syncLast', 0)) || 0, error: '' };
+  const syncOn = () => !!(SY.token && SY.owner && SY.repo && SY.path && SY.api);
+  const ghUrl = () => `${String(SY.api).replace(/\/+$/, '')}/repos/${encodeURIComponent(SY.owner)}/${encodeURIComponent(SY.repo)}/contents/${String(SY.path).split('/').map(encodeURIComponent).join('/')}`;
+  const ghHeaders = (extra) => Object.assign({ Authorization: 'Bearer ' + SY.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, extra || {});
+  const b64e = (s) => { const b = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(bin); };
+  const b64d = (s) => { const bin = atob(String(s || '').replace(/\s+/g, '')); const b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return new TextDecoder().decode(b); };
+  const syncErr = (status) => { const e = new Error('sync ' + status); e.status = status; return e; };
+  async function ghGet() {
+    const res = await fetch(ghUrl() + '?nocache=' + Date.now(), { headers: ghHeaders(), cache: 'no-store' });
+    if (res.status === 404) return { data: null, sha: null };
+    if (!res.ok) throw syncErr(res.status);
+    const j = await res.json();
+    let data;
+    try { data = JSON.parse(b64d(j.content)); } catch (e) { throw syncErr('bad'); }
+    if (!isObj(data)) throw syncErr('bad');
+    return { data, sha: j.sha };
+  }
+  async function ghPut(data, sha) {
+    const body = { message: '同步 ' + new Date().toISOString(), content: b64e(JSON.stringify(data)) };
+    if (sha) body.sha = sha;
+    const res = await fetch(ghUrl(), { method: 'PUT', headers: ghHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
+    if (res.status === 409 || res.status === 422) return { conflict: true };
+    if (!res.ok) throw syncErr(res.status);
+    return { ok: true };
+  }
+  function syncMessage(e) {
+    const s = e && e.status;
+    if (s === 401) return '同步失败：令牌不对或者过期了，重新填一个。';
+    if (s === 403) return '同步失败：这个令牌没有数据仓库的读写权限，也可能是请求太频繁，过一会儿再试。';
+    if (s === 404) return '同步失败：找不到数据仓库，检查一下用户名和仓库名。';
+    if (s === 'conflict') return '同步失败：两边同时在改，过一会儿再点一次「立即同步」。';
+    if (s === 'bad') return '同步失败：仓库里的数据文件读不懂，告诉 Claude Code。';
+    if (typeof s === 'number') return `同步失败：GitHub 返回了 ${s}，过一会儿再试。`;
+    return '没连上 GitHub：记录先存在这台设备上，连上了会自动同步。';
+  }
+  function syncText() {
+    if (!syncOn()) return '还没开同步：现在记录只在这台设备上。';
+    if (SYN.busy) return '正在同步…';
+    if (SYN.error) return SYN.error;
+    if (!SYN.last) return '还没同步过。';
+    return '上次同步：' + fmtDate(SYN.last);
+  }
+  const syncBadge = () => (!syncOn() ? '' : SYN.busy ? ' · 同步中' : SYN.error ? ' · 没同步上' : '');
+  function paintSync() {
+    const line = document.getElementById('syncLine');
+    if (line) line.textContent = syncText();
+    const dl = document.getElementById('dateline');
+    if (dl && dl.dataset.base != null) dl.textContent = dl.dataset.base + syncBadge();
+  }
+  function scheduleSync(delay) {
+    if (!syncOn()) return;
+    clearTimeout(SYN.timer);
+    SYN.timer = setTimeout(() => syncNow(false), delay == null ? 2500 : delay);
+  }
+  async function syncNow(manual) {
+    if (!syncOn() || !ready()) return;
+    if (manual) SYN.manual = true;
+    if (SYN.busy) { SYN.again = true; return; }
+    clearTimeout(SYN.timer);
+    SYN.busy = true;
+    SYN.error = '';
+    paintSync();
+    try {
+      let done = false;
+      for (let attempt = 0; attempt < 4 && !done; attempt++) {
+        const remote = await ghGet();
+        const local = snapshot(); // taken after the download, so edits made meanwhile are included
+        const merged = mergeAll(local, remote.data);
+        if (canon(merged) !== canon(local)) { applySnapshot(merged); render(); }
+        if (remote.data && canon(merged) === canon(remote.data)) { done = true; break; }
+        const put = await ghPut(merged, remote.sha);
+        if (!put.conflict) done = true;
+      }
+      if (!done) throw syncErr('conflict');
+      SYN.last = Date.now();
+      lset('syncLast', SYN.last);
+      if (SYN.manual) toast('同步好了');
+    } catch (e) {
+      SYN.error = syncMessage(e);
+      if (SYN.manual) toast(SYN.error);
+    } finally {
+      SYN.busy = false;
+      SYN.manual = false;
+      paintSync();
+      if (SYN.again) { SYN.again = false; scheduleSync(800); }
+    }
+  }
+
+  function applyDoc(key, d) {
+    if (key === 'courses') S.courses = d && Array.isArray(d.list) ? d.list : [];
+    else if (key === 'timetable') S.timetable = d && Array.isArray(d.classes) ? d.classes : [];
+    else if (key === 'notes') S.notes = d && Array.isArray(d.items) ? d.items : [];
+    else S.settings = d || {};
+  }
+  function startLocal() {
+    S.mode = 'local';
+    Object.keys(PATHS).forEach((key) => { applyDoc(key, lget('doc:' + PATHS[key], null)); S.loaded[key] = true; });
+    try {
+      const prefix = LS + 'doc:log/';
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf(prefix) === 0) {
+          const mk = k.slice(prefix.length);
+          S.logs[mk] = lget('doc:log/' + mk, { days: {} });
+        }
+      }
+    } catch (e) { /* no storage */ }
+    S.loaded.logs = true;
+    afterLoad();
+  }
+  let restored = false;
+  function afterLoad() {
+    if (!restored && ready()) { restored = true; restoreTimer(); }
+    render();
+  }
+
+  /* ---------- derived ---------- */
+  const getDay = (dk) => { const m = S.logs[dk.slice(0, 7)]; return (m && m.days && m.days[dk]) || {}; };
+  function semStart() {
+    const s = S.settings.semesterStart;
+    if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    const p = s.split('-').map(Number);
+    return new Date(p[0], p[1] - 1, p[2]);
+  }
+  function weekNo(date) {
+    const st = semStart();
+    if (!st) return null;
+    const diff = Math.round((startOfDay(date) - st) / 86400000);
+    return diff < 0 ? 0 : Math.floor(diff / 7) + 1;
+  }
+  function classesOn(date) {
+    const wd = isoWd(date);
+    const wk = weekNo(date);
+    return S.timetable.filter((c) => {
+      if (Number(c.weekday) !== wd) return false;
+      if (wk) {
+        if (c.weekFrom && wk < Number(c.weekFrom)) return false;
+        if (c.weekTo && wk > Number(c.weekTo)) return false;
+        if (c.parity === 'odd' && wk % 2 === 0) return false;
+        if (c.parity === 'even' && wk % 2 === 1) return false;
+      }
+      return true;
+    }).sort((a, b) => Number(a.start) - Number(b.start));
+  }
+  const courseById = (id) => S.courses.find((c) => c.id === id);
+  const courseName = (id) => { const c = courseById(id); return c ? (c.short || c.name) : ''; };
+  const periodText = (c) => `第${c.start}${Number(c.end) !== Number(c.start) ? '-' + c.end : ''}节`;
+  function hoursOf(c) {
+    if (!c) return null;
+    if (Number(c.hours) > 0) return { h: Number(c.hours), est: false };
+    if (!(Number(c.credits) > 0)) return null;
+    return { h: Number(c.credits) * (c.kind === '体育' ? 32 : 16), est: true };
+  }
+  function absences(courseId) {
+    const st = semStart();
+    const from = st ? dayKey(st) : '';
+    let h = 0;
+    Object.values(S.logs).forEach((m) => {
+      Object.entries((m && m.days) || {}).forEach(([dk, day]) => {
+        if (from && dk < from) return;
+        Object.values((day && day.attend) || {}).forEach((a) => {
+          if (a && a.c === courseId && (a.s === 'absent' || a.s === 'leave')) h += Number(a.h) || 0;
+        });
+      });
+    });
+    return h;
+  }
+  const earnedCredits = () => (Number(S.settings.baseEarned) || 0) + S.courses.reduce((s, c) => s + (c.status === 'passed' ? Number(c.credits) || 0 : 0), 0);
+  function gpaOf(score) {
+    if (score == null || score === '') return null;
+    const lv = { '优秀': 4.5, '良好': 3.5, '中等': 2.5, '及格': 1.5 };
+    if (lv[score] != null) return lv[score];
+    const n = Number(score);
+    if (!isFinite(n) || n < 0 || n > 100) return null;
+    return n >= 60 ? Math.min(5, (n - 50) / 10) : 0;
+  }
+  function gpaEstimate() {
+    let num = Number(S.settings.baseGpaNum);
+    let den = Number(S.settings.baseGpaDen);
+    if (!(den > 0) || !isFinite(num)) return null;
+    let assumed = false;
+    S.courses.forEach((c) => {
+      if (c.status !== 'passed' || !(Number(c.credits) > 0)) return;
+      let g = gpaOf(c.score);
+      if (g == null) { g = 1; assumed = true; }
+      num += g * Number(c.credits);
+      if (!c.inBase) den += Number(c.credits);
+    });
+    return { v: num / den, assumed };
+  }
+  const focusMinutes = (dk) => (getDay(dk).focus || []).reduce((s, f) => s + (Number(f.m) || 0), 0);
+  function weekDays(now) {
+    const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (isoWd(now) - 1));
+    return Array.from({ length: 7 }, (_, i) => new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i));
+  }
+  function courseOptions(sel) {
+    const list = S.courses.filter((c) => c.status === 'enrolled' || c.status === 'todo' || c.id === sel);
+    const rank = (c) => (c.status === 'enrolled' ? 0 : 1);
+    list.sort((a, b) => rank(a) - rank(b));
+    return `<option value="">不指定</option>` + list.map((c) => `<option value="${esc(c.id)}"${c.id === sel ? ' selected' : ''}>${esc(c.short || c.name)}</option>`).join('');
+  }
+
+  /* ---------- render ---------- */
+  function captureInputs(root) {
+    const out = { vals: {}, focus: null };
+    root.querySelectorAll('input[id], textarea[id], select[id]').forEach((el) => {
+      if (clearOnRender.has(el.id) || el.readOnly || el.type === 'file') return;
+      out.vals[el.id] = el.type === 'checkbox' ? { c: el.checked } : { v: el.value };
+    });
+    const a = document.activeElement;
+    if (a && a.id && root.contains(a)) {
+      let s = null;
+      let e = null;
+      try { s = a.selectionStart; e = a.selectionEnd; } catch (err) { /* not a text field */ }
+      out.focus = { id: a.id, s, e };
+    }
+    clearOnRender.clear();
+    return out;
+  }
+  function restoreInputs(saved) {
+    Object.keys(saved.vals).forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const v = saved.vals[id];
+      if ('c' in v) el.checked = v.c;
+      else if (el.tagName !== 'SELECT' || Array.from(el.options).some((o) => o.value === v.v)) el.value = v.v;
+    });
+    if (saved.focus) {
+      const el = document.getElementById(saved.focus.id);
+      if (el) {
+        el.focus({ preventScroll: true });
+        if (saved.focus.s != null) { try { el.setSelectionRange(saved.focus.s, saved.focus.e); } catch (err) { /* ignore */ } }
+      }
+    }
+  }
+  function render() {
+    document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === S.tab)));
+    const now = cn();
+    const wk = weekNo(now);
+    const dl = $('#dateline');
+    dl.dataset.base = `${now.getMonth() + 1}月${now.getDate()}日 周${WD[now.getDay()]}${wk ? ` · 第${wk}周` : ''}`;
+    dl.textContent = dl.dataset.base + syncBadge();
+    $('#banner').innerHTML = bannerHtml();
+    const view = $('#view');
+    const saved = captureInputs(view);
+    let html;
+    if (!ready()) html = `<p class="muted">正在读取你的记录…</p>`;
+    else if (S.tab === 'timetable') html = viewTimetable();
+    else if (S.tab === 'credits') html = viewCredits();
+    else if (S.tab === 'notes') html = viewNotes();
+    else html = viewToday();
+    view.innerHTML = html;
+    restoreInputs(saved);
+    syncNewCourse();
+    paintTimer();
+  }
+  function bannerHtml() {
+    if (!storageOk) return `<div class="banner">这个浏览器存不了记录（可能开着无痕模式），关掉页面记录就没了。换成普通模式或者别的浏览器再打开。</div>`;
+    if (ready() && !hasData() && !syncOn() && S.tab !== 'credits') return `<div class="banner">第一次打开：到「学分」页最下面填上 GitHub 令牌，你的课程和记录会自动同步过来。</div>`;
+    return '';
+  }
+
+  /* today */
+  function viewToday() {
+    const now = cn();
+    const dk = dayKey(now);
+    const day = getDay(dk);
+    const classes = classesOn(now);
+    const energy = day.energy || null;
+    const opts = [['ok', '还可以'], ['tired', '有点累'], ['very', '很累，不想动']];
+    let h = `<section class="block">
+      <h2 class="h">今天感觉怎么样？</h2>
+      <div class="chips" role="group" aria-label="今天的状态">${opts.map(([k, l]) => `<button class="chip${energy === k ? ' on' : ''}" data-act="energy" data-v="${k}" aria-pressed="${energy === k}">${l}</button>`).join('')}</div>
+      ${energyNote(energy, classes, day)}
+      ${tiredCare(now)}
+    </section>`;
+    h += `<section class="block"><div class="row-between"><h2 class="h">今天的课</h2>${classes.length ? '<span class="sub">到了就点一下</span>' : ''}</div>`;
+    if (!S.timetable.length) h += `<div class="empty"><strong>还没填课表</strong><span class="sub">照着教务系统把这学期的课填进「课表」，这里每天会列出当天的课。</span><button class="btn" data-act="goto" data-v="timetable">去填课表</button></div>`;
+    else if (!classes.length) h += `<p class="muted">今天没有课。</p>`;
+    else h += `<ol class="sheet">${classes.map((c) => classRow(c, day)).join('')}</ol>`;
+    h += `</section>`;
+    h += timerCard(dk);
+    const weekMin = weekDays(now).reduce((s, d) => s + focusMinutes(dayKey(d)), 0);
+    h += `<section class="block"><div class="row-between"><h2 class="h">这一周</h2><span class="sub">本周专心学了 ${weekMin} 分钟</span></div>${weekStrip(now)}</section>`;
+    h += todosBlock(day);
+    h += `<section class="block"><h2 class="h">没听懂的，记一句</h2><form class="stack" data-form="quicknote">${noteFields('qn')}</form></section>`;
+    return h;
+  }
+  function energyNote(energy, classes, day) {
+    if (energy === 'ok') return `<p class="note">好，按计划来：去上课，再专心学一段。</p>`;
+    if (energy === 'tired') return `<p class="note">那今天只做最要紧的：去上课，再学一段 25 分钟。别的明天再说。</p>`;
+    if (energy !== 'very') return '';
+    const next = classes.find((c) => !(day.attend && day.attend[c.id] && day.attend[c.id].s));
+    if (next) {
+      return `<div class="minstep"><span class="minstep-k">今天只做一件事就算数</span><span class="minstep-v">去上${periodText(next)}的${esc(courseName(next.courseId) || '课')}</span><span class="sub">${next.place ? esc(next.place) + '。' : ''}到了就在下面点「到了」。坐在教室里听不进去也没关系，人到了就算。</span></div>`;
+    }
+    return `<div class="minstep"><span class="minstep-k">今天只做一件事就算数</span><span class="minstep-v">坐下来学 15 分钟</span><button class="btn" data-act="quick15">开始 15 分钟</button></div>`;
+  }
+  function tiredCare(now) {
+    let very = 0;
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      if (getDay(dayKey(d)).energy === 'very') very++;
+    }
+    if (very < 10) return '';
+    return `<div class="care"><strong>最近两周，大多数天你都选了「很累」。</strong><span>这种累一直不散的话，值得认真对待：可以去校医院看看睡眠和身体，也可以去学校心理咨询中心聊聊，或者打 12356（免费、保密）。</span></div>`;
+  }
+  function meter(course) {
+    const hh = hoursOf(course);
+    if (!hh) return '';
+    const limit = hh.h / 3;
+    const a = absences(course.id);
+    const ratio = Math.min(1, a / limit);
+    const level = a > limit ? 'over' : ratio >= 0.75 ? 'bad' : ratio >= 0.4 ? 'warn' : 'ok';
+    const text = a > limit
+      ? `缺了 ${fmt(a)} 学时，超过三分之一了：按校规不能考这门课，马上找任课老师和辅导员`
+      : `缺课 ${fmt(a)} / ${fmt(limit)} 学时${hh.est ? '（估）' : ''}`;
+    return `<div class="meter ${level}"><div class="meter-bar"><i style="width:${(ratio * 100).toFixed(1)}%"></i></div><span>${text}</span></div>`;
+  }
+  function classRow(c, day) {
+    const a = day.attend && day.attend[c.id];
+    const st = a && a.s;
+    const name = courseName(c.courseId);
+    const opts = [['present', '到了'], ['leave', '请假'], ['absent', '没去']];
+    return `<li class="sheet-row">
+      <div class="period"><span>${periodText(c)}</span>${c.time ? `<small>${esc(c.time)}</small>` : ''}</div>
+      <div class="sheet-main"><div class="cname">${esc(name || '（这门课被删了）')}</div>${c.place ? `<div class="sub">${esc(c.place)}</div>` : ''}${meter(courseById(c.courseId))}</div>
+      <div class="seg" role="group" aria-label="${esc(name)}到课情况">${opts.map(([k, l]) => `<button class="${k}${st === k ? ' on' : ''}" data-act="attend" data-id="${esc(c.id)}" data-v="${k}" aria-pressed="${st === k}">${l}</button>`).join('')}</div>
+    </li>`;
+  }
+  function timerCard(dk) {
+    let controls;
+    if (!T) {
+      controls = `<label>学哪门课<select id="timerCourse">${courseOptions(S.timerSel.courseId)}</select></label>
+        <div class="chips" role="group" aria-label="时长">${[15, 25, 45].map((m) => `<button class="chip${S.timerSel.minutes === m ? ' on' : ''}" data-act="dur" data-v="${m}" aria-pressed="${S.timerSel.minutes === m}">${m} 分钟</button>`).join('')}</div>
+        <button class="btn wide" data-act="tstart">开始</button>`;
+    } else {
+      controls = `<div class="row-2">${T.running ? '<button class="btn ghost" data-act="tpause">暂停</button>' : '<button class="btn" data-act="tresume">继续</button>'}<button class="btn ghost" data-act="tstop">结束</button></div>`;
+    }
+    return `<section class="block card">
+      <div class="row-between"><h2 class="h">专心学一段</h2><span class="sub">今天 ${focusMinutes(dk)} 分钟</span></div>
+      <div class="timer-face" id="timerFace">${pad(S.timerSel.minutes)}:00</div>
+      <div class="timer-sub" id="timerSub"></div>
+      <div class="timer-controls">${controls}</div>
+    </section>`;
+  }
+  function weekStrip(now) {
+    const today = dayKey(now);
+    const days = weekDays(now).map((d) => {
+      const dk = dayKey(d);
+      const att = Object.values(getDay(dk).attend || {}).filter((a) => a && a.s);
+      return {
+        d, dk, min: focusMinutes(dk),
+        p: att.filter((a) => a.s === 'present').length,
+        l: att.filter((a) => a.s === 'leave').length,
+        m: att.filter((a) => a.s === 'absent').length,
+      };
+    });
+    const max = Math.max(30, ...days.map((x) => x.min));
+    const dots = (n, cls) => `<b class="${cls}"></b>`.repeat(Math.min(n, 4));
+    return `<div class="week" role="img" aria-label="本周每天的到课情况和专心学习分钟">${days.map((x) => `<div class="wk-col${x.dk === today ? ' today' : ''}">
+        <span class="wk-min">${x.min || ''}</span>
+        <div class="wk-bar"><i style="height:${Math.round((x.min / max) * 100)}%"></i></div>
+        <div class="wk-dots">${dots(x.p, 'p')}${dots(x.l, 'l')}${dots(x.m, 'm')}</div>
+        <span class="wk-label">${WD[x.d.getDay()]}</span>
+      </div>`).join('')}</div>
+      <div class="legend"><span><b class="p"></b>到课</span><span><b class="l"></b>请假</span><span><b class="m"></b>没去</span><span><i class="swatch"></i>专心学的分钟</span></div>`;
+  }
+  function todosBlock(day) {
+    const todos = day.todos || [];
+    const list = todos.length
+      ? `<ul class="todos">${todos.map((t, i) => `<li><label class="todo"><input type="checkbox" data-act="todo" data-i="${i}"${t.d ? ' checked' : ''}><span${t.d ? ' class="done"' : ''}>${esc(t.t)}</span></label><button class="x" data-act="todo-del" data-i="${i}" aria-label="删掉这条">删</button></li>`).join('')}</ul>`
+      : `<p class="muted">定一两个就够，比如「把计网第 3 章的课件看一遍」。</p>`;
+    const form = todos.length < 3
+      ? `<form class="inline-form" data-form="todo"><input id="todoText" maxlength="60" placeholder="加一个小目标" autocomplete="off" aria-label="小目标"><button class="btn">加上</button></form>`
+      : `<p class="sub">三个够了，先把这些做完。</p>`;
+    return `<section class="block"><h2 class="h">今天的小目标</h2>${list}${form}</section>`;
+  }
+  function noteFields(p) {
+    return `<label>哪门课<select id="${p}Course">${courseOptions(S.lastNoteCourse)}</select></label>
+      <textarea id="${p}Text" rows="2" maxlength="300" placeholder="比如：TCP 三次握手为什么不能只握两次？" aria-label="没听懂的地方"></textarea>
+      <button class="btn">记到问题本</button>`;
+  }
+
+  /* timetable */
+  function weeksText(c) {
+    const parts = [];
+    if (c.weekFrom || c.weekTo) parts.push(`${c.weekFrom || 1}-${c.weekTo || '?'}周`);
+    if (c.parity === 'odd') parts.push('单周');
+    if (c.parity === 'even') parts.push('双周');
+    return parts.join(' ');
+  }
+  function ttRow(c) {
+    const confirm = S.confirmDel === 'class:' + c.id;
+    const meta = [c.place, weeksText(c)].filter(Boolean).map(esc).join(' · ');
+    return `<li class="sheet-row">
+      <div class="period"><span>${periodText(c)}</span>${c.time ? `<small>${esc(c.time)}</small>` : ''}</div>
+      <div class="sheet-main"><div class="cname">${esc(courseName(c.courseId) || '（这门课被删了）')}</div>${meta ? `<div class="sub">${meta}</div>` : ''}</div>
+      <div class="row-actions"><button class="btn ghost sm" data-act="class-edit" data-id="${esc(c.id)}">改</button><button class="btn ${confirm ? 'danger' : 'ghost'} sm" data-act="class-del" data-id="${esc(c.id)}">${confirm ? '确定删掉' : '删'}</button></div>
+    </li>`;
+  }
+  function classForm() {
+    const c = (S.editClass && S.timetable.find((x) => x.id === S.editClass)) || {};
+    const sel = c.courseId || '';
+    const list = S.courses.filter((x) => (x.status !== 'passed' && x.status !== 'skip') || x.id === sel);
+    const options = list.map((x) => `<option value="${esc(x.id)}"${x.id === sel ? ' selected' : ''}>${esc(x.short || x.name)}</option>`).join('');
+    const wd = Number(c.weekday) || isoWd(cn());
+    return `<form class="card editor" data-form="class">
+      <h2 class="h">${S.editClass ? '改这节课' : '添加一节课'}</h2>
+      <label>课程<select id="cfCourse">${options}<option value="__new"${list.length ? '' : ' selected'}>其他课（手动填）</option></select></label>
+      <div id="cfNewWrap" class="grid2"${list.length ? ' hidden' : ''}>
+        <label>课程名<input id="cfNewName" maxlength="40" placeholder="课程名" autocomplete="off"></label>
+        <label>总学时<input id="cfNewHours" type="number" min="1" step="1" inputmode="numeric" placeholder="如 48"></label>
+      </div>
+      <div class="grid2">
+        <label>星期<select id="cfWeekday">${[1, 2, 3, 4, 5, 6, 7].map((d) => `<option value="${d}"${wd === d ? ' selected' : ''}>周${WD[d % 7]}</option>`).join('')}</select></label>
+        <label>开始时间（可不填）<input id="cfTime" type="time" value="${esc(c.time || '')}"></label>
+        <label>从第几节<input id="cfStart" type="number" min="1" max="14" inputmode="numeric" value="${esc(c.start || 1)}"></label>
+        <label>到第几节<input id="cfEnd" type="number" min="1" max="14" inputmode="numeric" value="${esc(c.end || 2)}"></label>
+        <label>教室<input id="cfPlace" maxlength="30" value="${esc(c.place || '')}" placeholder="如 屏峰 教 B201" autocomplete="off"></label>
+        <label>单双周<select id="cfParity"><option value="all">每周</option><option value="odd"${c.parity === 'odd' ? ' selected' : ''}>单周</option><option value="even"${c.parity === 'even' ? ' selected' : ''}>双周</option></select></label>
+        <label>第几周开始<input id="cfWeekFrom" type="number" min="1" max="25" inputmode="numeric" value="${esc(c.weekFrom || '')}" placeholder="不填就是每周"></label>
+        <label>第几周结束<input id="cfWeekTo" type="number" min="1" max="25" inputmode="numeric" value="${esc(c.weekTo || '')}" placeholder="不填就是每周"></label>
+      </div>
+      <div class="row-end"><button type="button" class="btn ghost" data-act="class-cancel">取消</button><button class="btn">保存</button></div>
+    </form>`;
+  }
+  function syncNewCourse() {
+    const sel = document.getElementById('cfCourse');
+    const wrap = document.getElementById('cfNewWrap');
+    if (sel && wrap) wrap.hidden = sel.value !== '__new';
+  }
+  function viewTimetable() {
+    const wk = weekNo(cn());
+    let h = `<section class="block"><h1 class="h1">课表</h1>
+      <p class="muted">照着教务系统里这学期的课表填。每节课在「今天」页打卡，缺课会自动累计。</p>
+      <p class="rule-line">缺课（病假、事假都算）超过这门课学时的三分之一，就不能参加考试。</p>
+      <p class="sub">每门课的总学时先按 1 学分 16 学时估（体育按 32），标着「估」。在「学分」里点开那门课，可以改成课程大纲上的数。</p></section>`;
+    const days = [1, 2, 3, 4, 5, 6, 7]
+      .map((wd) => ({ wd, list: S.timetable.filter((c) => Number(c.weekday) === wd).sort((a, b) => Number(a.start) - Number(b.start)) }))
+      .filter((x) => x.list.length);
+    h += `<section class="block">`;
+    if (!days.length) h += `<div class="empty"><strong>还没有课</strong><span class="sub">点下面的「添加一节课」，一节一节填。同一门课一周上两次，就填两节。</span></div>`;
+    days.forEach(({ wd, list }) => { h += `<h2 class="h day-h">周${WD[wd % 7]}</h2><ol class="sheet">${list.map(ttRow).join('')}</ol>`; });
+    h += (S.addingClass || S.editClass) ? classForm() : `<button class="btn wide" data-act="class-add">添加一节课</button>`;
+    h += `</section>`;
+    h += `<section class="block card"><h2 class="h">开学日期</h2>
+      <p class="sub">填第 1 周的周一，才能算出今天是第几周，单双周、起止周的课才会按周显示。</p>
+      <form class="inline-form" data-form="sem"><input type="date" id="semStart" value="${esc(S.settings.semesterStart || '')}" aria-label="第 1 周周一"><button class="btn">保存</button></form>
+      ${wk ? `<p class="sub">今天是第 ${wk} 周。</p>` : ''}
+    </section>`;
+    return h;
+  }
+
+  /* credits */
+  function statusChip(c) {
+    const s = c.status || 'todo';
+    const label = (STATUS.find(([k]) => k === s) || STATUS[0])[1];
+    return `<span class="st ${esc(s)}">${label}${s === 'passed' && c.score ? ' ' + esc(c.score) : ''}</span>`;
+  }
+  function courseEditor(c) {
+    const id = esc(c.id);
+    const est = hoursOf(Object.assign({}, c, { hours: null }));
+    const kindNote = c.kind === '实践' ? '实践课不及格没有补考，只能重修。'
+      : c.kind === '体育' ? '体育不及格没有补考，只能重修。'
+      : '第一次考没过，下学期开学初有一次补考；重修没过、或者旷考，就没有补考了。';
+    const delKey = 'course:' + c.id;
+    return `<form class="editor" data-form="course" data-id="${id}">
+      <p class="sub">${c.fails ? `挂过 ${c.fails} 次。` : ''}${kindNote}</p>
+      <div class="grid3">
+        <label>状态<select id="ce-status-${id}">${STATUS.map(([k, l]) => `<option value="${k}"${(c.status || 'todo') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label>成绩<input id="ce-score-${id}" value="${esc(c.score == null ? '' : c.score)}" placeholder="72 或 良好" maxlength="4" autocomplete="off"></label>
+        <label>总学时<input id="ce-hours-${id}" type="number" min="1" step="1" inputmode="numeric" value="${c.hours ? esc(c.hours) : ''}" placeholder="${est ? '估 ' + fmt(est.h) : ''}"></label>
+      </div>
+      <div class="row-end">${c.group === 'other' ? `<button type="button" class="btn ${S.confirmDel === delKey ? 'danger' : 'ghost'} sm" data-act="course-del" data-id="${id}">${S.confirmDel === delKey ? '确定删掉' : '删掉这门课'}</button>` : ''}<button type="button" class="btn ghost" data-act="course-close">收起</button><button class="btn">保存</button></div>
+    </form>`;
+  }
+  function courseRow(c) {
+    const open = S.openCourse === c.id;
+    return `<li class="course">
+      <button class="course-head" data-act="course-open" data-id="${esc(c.id)}" aria-expanded="${open}">
+        <span class="cname">${esc(c.name)}</span>
+        <span class="credits">${Number(c.credits) > 0 ? fmt(c.credits) + ' 学分' : ''}</span>
+        ${statusChip(c)}
+      </button>
+      ${open ? courseEditor(c) : ''}
+    </li>`;
+  }
+  function viewCredits() {
+    if (!S.courses.length && S.settings.baseEarned == null) {
+      return `<section class="block"><h1 class="h1">学分</h1><div class="empty"><strong>${syncOn() ? (SYN.busy ? '正在从 GitHub 同步…' : '还没有课程清单') : '课程清单还没同步过来'}</strong><span class="sub">${syncOn() ? '同步好以后，课程清单和学分会出现在这里。' : '在下面「手机电脑同步」里填上 GitHub 令牌，课程清单会自动同步过来；也可以用备份导入。'}</span></div></section>` + syncBlock() + backupBlock();
+    }
+    const got = earnedCredits();
+    const gate = Number(S.settings.gateCredits) || 100;
+    const grad = Number(S.settings.gradCredits) || 160;
+    const g = gpaEstimate();
+    let h = `<section class="block"><h1 class="h1">学分</h1>
+      <div class="card credit-card">
+        <div class="big">${fmt(got)}<small> / ${grad} 学分</small></div>
+        <div class="cbar" role="img" aria-label="已获 ${fmt(got)} 学分，毕设线 ${gate}，毕业要 ${grad}">
+          <i style="width:${Math.min(100, (got / grad) * 100).toFixed(1)}%"></i>
+          <span class="tick" style="left:${((gate / grad) * 100).toFixed(2)}%"><span>毕设线 ${gate}</span></span>
+          <span class="tick end" style="left:100%"><span>毕业 ${grad}</span></span>
+        </div>
+        <ul class="facts">
+          <li>${got > gate ? `已经超过 ${gate}，明年可以进毕业环节。` : `明年 9 月开学（补考结束后），已获学分要<strong>超过 ${gate}</strong>，现在是 ${fmt(got)}。不够就不能做毕设，只能延期毕业。`}</li>
+          <li>毕业要 ${grad}，还差 ${fmt(Math.max(0, grad - got))}。</li>
+          ${g ? `<li>学位绩点估算 <strong>${g.v.toFixed(2)}</strong>（每门按最高成绩算${g.assumed ? '，没填成绩的按 60 分算' : ''}）。学位有没有绩点线，问辅导员。</li>` : ''}
+        </ul>
+      </div>
+    </section>`;
+    GROUPS.forEach(([k, title, hint]) => {
+      const list = S.courses.filter((c) => (c.group || 'other') === k);
+      if (!list.length) return;
+      const open = list.filter((c) => c.status !== 'passed' && c.status !== 'skip');
+      const left = open.reduce((s, c) => s + (Number(c.credits) || 0), 0);
+      const tail = !open.length ? '都过了' : left ? `还差 ${fmt(left)} 学分` : `还有 ${open.length} 门`;
+      h += `<section class="block"><div class="group-h"><h2 class="h">${title}</h2><span class="sub">${tail}</span></div>${hint ? `<p class="sub">${hint}</p>` : ''}<ul class="courses">${list.map(courseRow).join('')}</ul></section>`;
+    });
+    h += `<section class="block"><h2 class="h">校规速查</h2><ul class="rules">
+        <li>重修报名开了就报，秋季那组和体育先报。</li>
+        <li>缺课（病假、事假都算）超过三分之一，或者缺交作业达到三分之一，不能参加考试，记 0 分。</li>
+        <li>旷考没有补考。重修没过也没有补考，只能再重修。理论课第一次考没过，下学期开学初有一次补考；体育、实验、实践课没有补考。</li>
+        <li>考试去不了，要在考前办缓考，不然按旷考算。</li>
+        <li>明年 9 月开学（补考结束后）已获学分要超过 100，不然不能做毕设。</li>
+        <li>毕业时体测要 50 分以上，不然只能结业或肄业。</li>
+        <li>本科最长读 6 年，2029 年是最后期限。</li>
+      </ul><p class="sub">出自《浙江工业大学本科学生学籍管理实施细则》（2024 年版）和《国家学生体质健康标准》，以学校最新通知为准。</p></section>`;
+    h += syncBlock() + backupBlock();
+    return h;
+  }
+  function syncBlock() {
+    const on = syncOn();
+    const body = on
+      ? `<p class="sub">数据存在你的 GitHub 私有仓库 ${esc(SY.owner)}/${esc(SY.repo)} 里，只有你能看到。改了会自动同步，打开页面时也会拉一次最新的。</p>
+        <div class="chips"><button class="btn" data-act="syncnow">立即同步</button><button class="btn ${S.confirmSyncOff ? 'danger' : 'ghost'}" data-act="syncoff">${S.confirmSyncOff ? '确定断开' : '断开同步'}</button></div>`
+      : `<p class="sub">填上 GitHub 令牌，手机和电脑的记录就会自动同步。令牌在 GitHub 网站上生成，只能读写下面这个仓库。</p>
+        <form class="stack" data-form="sync">
+          <div class="grid2">
+            <label>GitHub 用户名<input id="syOwner" value="${esc(SY.owner)}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+            <label>数据仓库<input id="syRepo" value="${esc(SY.repo)}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+          </div>
+          <label>令牌<input id="syToken" type="password" placeholder="github_pat_ 开头的一长串" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+          <button class="btn">保存并同步</button>
+        </form>`;
+    return `<section class="block card"><h2 class="h">手机电脑同步</h2><p class="sub" id="syncLine">${esc(syncText())}</p>${body}</section>`;
+  }
+  function backupBlock() {
+    const replace = S.confirmImport && hasData();
+    return `<section class="block"><h2 class="h">备份和导入</h2>
+      <p class="sub">${syncOn() ? '开着同步，GitHub 上一直有一份。想多留一份的话，' : '没开同步时，记录只存在这台设备的浏览器里：换手机、清浏览器数据、删掉主屏幕上的图标，记录都会没，所以'}隔一两周复制一次备份，发给自己存着。</p>
+      <div class="chips"><button class="btn ghost" data-act="backup">复制全部记录</button><button class="btn ghost" data-act="download">下载成文件</button></div>
+      ${copyBox()}
+      <form class="stack" data-form="import">
+        <label>导入：把备份的那段文字粘贴到这里<textarea id="importText" rows="4" placeholder="以 {&quot;exportedAt&quot; 开头的一长段" autocomplete="off" spellcheck="false"></textarea></label>
+        <label>或者选一个备份文件<input type="file" id="importFile" accept=".json,.txt,application/json,text/plain"></label>
+        ${replace ? '<p class="rule-line">导入会把备份合并进来，同一条记录以备份里的为准。确定的话再点一次。</p>' : ''}
+        <button class="btn${replace ? ' danger' : ''}">${replace ? '确定导入' : '导入'}</button>
+      </form>
+    </section>`;
+  }
+
+  /* notes */
+  function copyBox() {
+    if (!S.copyFallback) return '';
+    return `<div class="stack"><textarea id="copyBox" rows="6" readonly aria-label="要复制的内容">${esc(S.copyFallback)}</textarea><div><button class="btn ghost sm" data-act="copyclose">收起</button></div></div>`;
+  }
+  function fmtDate(ts) {
+    if (!ts) return '';
+    const d = cn(ts);
+    return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function noteCard(n) {
+    const delKey = 'note:' + n.id;
+    const answer = n.a ? `<div class="answer">${esc(n.a)}</div>` : '';
+    return `<li class="note-card${n.d ? ' done' : ''}">
+      <div class="note-meta">${n.c && courseName(n.c) ? `<span class="tag">${esc(courseName(n.c))}</span>` : ''}<span>${esc(fmtDate(n.at))}</span>${n.d ? '<span>· 懂了</span>' : ''}</div>
+      <div class="note-text">${esc(n.t)}</div>
+      ${answer}
+      <div class="note-actions"><button class="btn ghost sm" data-act="ndone" data-id="${esc(n.id)}">${n.d ? '还没懂' : '懂了'}</button><button class="btn ${S.confirmDel === delKey ? 'danger' : 'ghost'} sm" data-act="ndel" data-id="${esc(n.id)}">${S.confirmDel === delKey ? '确定删掉' : '删'}</button></div>
+    </li>`;
+  }
+  function viewNotes() {
+    const filter = S.notesFilter;
+    const openCount = S.notes.filter((n) => !n.d).length;
+    const list = S.notes.filter((n) => filter === 'all' || !n.d);
+    let h = `<section class="block"><h1 class="h1">问题本</h1>
+      <p class="muted">没听懂的都记在这。可以问老师、问同学，或者点「复制没懂的」，回电脑上发给 Claude Code。</p>
+      <form class="stack" data-form="quicknote">${noteFields('nn')}</form></section>`;
+    h += `<section class="block">
+      <div class="row-between"><div class="chips" role="group" aria-label="筛选">
+        <button class="chip${filter === 'open' ? ' on' : ''}" data-act="nfilter" data-v="open" aria-pressed="${filter === 'open'}">没懂的 ${openCount}</button>
+        <button class="chip${filter === 'all' ? ' on' : ''}" data-act="nfilter" data-v="all" aria-pressed="${filter === 'all'}">全部 ${S.notes.length}</button>
+      </div>${openCount ? '<button class="btn ghost sm" data-act="ncopy">复制没懂的</button>' : ''}</div>
+      ${copyBox()}
+      ${list.length ? `<ul class="notes">${list.map(noteCard).join('')}</ul>` : `<p class="muted">${filter === 'open' ? '现在没有没懂的问题。' : '还没记过问题。'}</p>`}
+    </section>`;
+    return h;
+  }
+
+  /* ---------- timer ---------- */
+  let tickH = null;
+  let wake = null;
+  let ac = null;
+  function paintTimer() {
+    const face = document.getElementById('timerFace');
+    const sub = document.getElementById('timerSub');
+    if (!face) return;
+    if (!T) {
+      face.textContent = `${pad(S.timerSel.minutes)}:00`;
+      if (sub) sub.textContent = '选好课和时长，点开始。手机可以放远一点。';
+      return;
+    }
+    const rem = T.running ? Math.max(0, T.endAt - Date.now()) : T.rem;
+    const s = Math.ceil(rem / 1000);
+    face.textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+    if (sub) {
+      const name = T.c ? courseName(T.c) : '';
+      if (T.running) {
+        const end = cn(T.endAt);
+        sub.textContent = `${name ? name + ' · ' : ''}${pad(end.getHours())}:${pad(end.getMinutes())} 结束`;
+      } else {
+        sub.textContent = `${name ? name + ' · ' : ''}暂停中`;
+      }
+    }
+  }
+  const saveTimer = () => { if (T) lset('timer', T); else ldel('timer'); };
+  function stopTick() { if (tickH) { clearInterval(tickH); tickH = null; } }
+  function startTick() { stopTick(); tickH = setInterval(tick, 500); }
+  function tick() {
+    if (!T || !T.running) { stopTick(); return; }
+    if (Date.now() >= T.endAt && ready()) completeTimer(false);
+    else paintTimer();
+  }
+  async function requestWake() {
+    try {
+      if ('wakeLock' in navigator && document.visibilityState === 'visible') wake = await navigator.wakeLock.request('screen');
+    } catch (e) { wake = null; }
+  }
+  function releaseWake() {
+    try { if (wake) wake.release(); } catch (e) { /* ignore */ }
+    wake = null;
+  }
+  function primeAudio() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!ac) ac = new AC();
+      if (ac.state === 'suspended') ac.resume();
+    } catch (e) { ac = null; }
+  }
+  function chime() {
+    try {
+      if (!ac) return;
+      const t0 = ac.currentTime;
+      [523.25, 659.25, 783.99].forEach((f, i) => {
+        const o = ac.createOscillator();
+        const g = ac.createGain();
+        const t = t0 + i * 0.22;
+        o.type = 'sine';
+        o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+        o.connect(g);
+        g.connect(ac.destination);
+        o.start(t);
+        o.stop(t + 0.55);
+      });
+    } catch (e) { /* no audio */ }
+  }
+  function logFocus(c, m, at) {
+    const d = cn(at);
+    const dk = dayKey(d);
+    const list = (getDay(dk).focus || []).slice();
+    list.push({ c: c || '', m, at: `${pad(d.getHours())}:${pad(d.getMinutes())}` });
+    patchDay(dk, { focus: list });
+  }
+  function startTimer(courseId, minutes) {
+    if (!ready() || S.readOnly) return;
+    primeAudio();
+    T = { c: courseId || '', m: minutes, endAt: Date.now() + minutes * 60000, rem: null, running: true };
+    saveTimer();
+    startTick();
+    requestWake();
+    render();
+  }
+  function pauseTimer() {
+    if (!T || !T.running) return;
+    T.rem = Math.max(0, T.endAt - Date.now());
+    T.running = false;
+    saveTimer(); stopTick(); releaseWake(); render();
+  }
+  function resumeTimer() {
+    if (!T || T.running) return;
+    primeAudio();
+    T.endAt = Date.now() + T.rem;
+    T.running = true;
+    saveTimer(); startTick(); requestWake(); render();
+  }
+  function stopTimer() {
+    if (!T) return;
+    const remMs = T.running ? Math.max(0, T.endAt - Date.now()) : T.rem;
+    const doneMin = Math.floor((T.m * 60000 - remMs) / 60000);
+    const c = T.c;
+    T = null;
+    saveTimer(); stopTick(); releaseWake();
+    if (doneMin >= 5) { logFocus(c, doneMin, Date.now()); toast(`记上了：${doneMin} 分钟`); }
+    else toast('不到 5 分钟，这次不记。');
+    render();
+  }
+  function completeTimer(silent) {
+    const t = T;
+    T = null;
+    saveTimer(); stopTick(); releaseWake();
+    logFocus(t.c, t.m, t.endAt);
+    if (!silent) chime();
+    toast(`学完一段：${t.m} 分钟${t.c && courseName(t.c) ? ' · ' + courseName(t.c) : ''}`);
+    render();
+  }
+  function restoreTimer() {
+    if (!T || !T.running) return;
+    if (Date.now() >= T.endAt) completeTimer(true);
+    else startTick();
+  }
+
+  /* ---------- actions ---------- */
+  function toast(msg) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.hidden = false;
+    clearTimeout(toast.h);
+    toast.h = setTimeout(() => { el.hidden = true; }, 2600);
+  }
+  function copyText(text, label) {
+    const fallback = () => { S.copyFallback = text; render(); toast('自动复制不了，在下面的框里全选复制。'); };
+    let p = null;
+    try { p = navigator.clipboard && navigator.clipboard.writeText(text); } catch (e) { p = null; }
+    if (!p) { fallback(); return; }
+    p.then(() => toast(label + '已复制')).catch(fallback);
+  }
+  const freshForm = () => FORM_IDS.forEach((id) => clearOnRender.add(id));
+  const today = () => dayKey(cn());
+  const ACT = {
+    goto: (el) => { S.tab = el.dataset.v; lset('tab', S.tab); render(); window.scrollTo(0, 0); },
+    energy: (el) => {
+      const dk = today();
+      const cur = getDay(dk).energy;
+      patchDay(dk, { energy: cur === el.dataset.v ? null : el.dataset.v });
+      render();
+    },
+    attend: (el) => {
+      const c = S.timetable.find((x) => x.id === el.dataset.id);
+      if (!c) return;
+      const dk = today();
+      const cur = getDay(dk).attend && getDay(dk).attend[c.id];
+      const s = cur && cur.s === el.dataset.v ? null : el.dataset.v;
+      patchDay(dk, { attend: { [c.id]: { c: c.courseId, h: Math.max(1, Number(c.end) - Number(c.start) + 1), s } } });
+      if (s === 'present') toast('记上了。人到了就好。');
+      render();
+    },
+    dur: (el) => { S.timerSel.minutes = Number(el.dataset.v); lset('timerSel', S.timerSel); render(); },
+    tstart: () => {
+      const sel = document.getElementById('timerCourse');
+      if (sel) S.timerSel.courseId = sel.value;
+      lset('timerSel', S.timerSel);
+      startTimer(S.timerSel.courseId, S.timerSel.minutes);
+    },
+    quick15: () => startTimer('', 15),
+    tpause: () => pauseTimer(),
+    tresume: () => resumeTimer(),
+    tstop: () => stopTimer(),
+    todo: (el) => {
+      const dk = today();
+      const list = (getDay(dk).todos || []).map((t) => Object.assign({}, t));
+      const t = list[Number(el.dataset.i)];
+      if (!t) return;
+      t.d = el.checked;
+      patchDay(dk, { todos: list });
+      if (t.d) toast('做完一个。');
+      render();
+    },
+    'todo-del': (el) => {
+      const dk = today();
+      const list = (getDay(dk).todos || []).slice();
+      list.splice(Number(el.dataset.i), 1);
+      patchDay(dk, { todos: list });
+      render();
+    },
+    'course-open': (el) => { S.openCourse = S.openCourse === el.dataset.id ? null : el.dataset.id; render(); },
+    'course-close': () => { S.openCourse = null; render(); },
+    'course-del': (el) => {
+      const id = el.dataset.id;
+      if (S.confirmDel !== 'course:' + id) { S.confirmDel = 'course:' + id; render(); return; }
+      S.confirmDel = null;
+      S.courses = S.courses.filter((c) => c.id !== id);
+      S.openCourse = null;
+      saveDoc('courses');
+      if (S.timetable.some((k) => k.courseId === id)) { S.timetable = S.timetable.filter((k) => k.courseId !== id); saveDoc('timetable'); }
+      toast('删掉了');
+      render();
+    },
+    'class-add': () => { S.addingClass = true; S.editClass = null; freshForm(); render(); },
+    'class-edit': (el) => { S.editClass = el.dataset.id; S.addingClass = false; freshForm(); render(); },
+    'class-cancel': () => { S.addingClass = false; S.editClass = null; freshForm(); render(); },
+    'class-del': (el) => {
+      const id = el.dataset.id;
+      if (S.confirmDel !== 'class:' + id) { S.confirmDel = 'class:' + id; render(); return; }
+      S.confirmDel = null;
+      S.timetable = S.timetable.filter((x) => x.id !== id);
+      if (S.editClass === id) { S.editClass = null; freshForm(); }
+      saveDoc('timetable');
+      toast('删掉了');
+      render();
+    },
+    nfilter: (el) => { S.notesFilter = el.dataset.v === 'all' ? 'all' : 'open'; render(); },
+    ndone: (el) => {
+      const n = S.notes.find((x) => x.id === el.dataset.id);
+      if (!n) return;
+      n.d = !n.d;
+      saveDoc('notes');
+      if (n.d) toast('懂了一个。');
+      render();
+    },
+    ndel: (el) => {
+      const id = el.dataset.id;
+      if (S.confirmDel !== 'note:' + id) { S.confirmDel = 'note:' + id; render(); return; }
+      S.confirmDel = null;
+      S.notes = S.notes.filter((x) => x.id !== id);
+      saveDoc('notes');
+      render();
+    },
+    ncopy: () => {
+      const open = S.notes.filter((n) => !n.d);
+      const text = '我的问题本（还没懂的）：\n' + open.map((n, i) => `${i + 1}. ${n.c && courseName(n.c) ? '[' + courseName(n.c) + '] ' : ''}${n.t}`).join('\n');
+      copyText(text, '问题');
+    },
+    backup: () => copyText(backupJson(), '全部记录'),
+    download: () => {
+      try {
+        const blob = new Blob([backupJson()], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `回到课堂备份-${today()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } catch (e) { toast('这里下载不了，用「复制全部记录」。'); }
+    },
+    copyclose: () => { S.copyFallback = null; render(); },
+    syncnow: () => { syncNow(true); },
+    syncoff: () => {
+      if (!S.confirmSyncOff) { S.confirmSyncOff = true; render(); return; }
+      S.confirmSyncOff = false;
+      clearTimeout(SYN.timer);
+      SY = Object.assign({}, SY, { token: '' });
+      lset('sync', SY);
+      SYN.error = '';
+      toast('断开了。记录还留在这台设备上。');
+      render();
+    },
+  };
+  const FORMS = {
+    todo: (f) => {
+      const inp = f.querySelector('input');
+      const t = inp.value.trim();
+      if (!t) return;
+      const dk = today();
+      const list = (getDay(dk).todos || []).slice();
+      if (list.length >= 3) return;
+      list.push({ t, d: false });
+      clearOnRender.add(inp.id);
+      patchDay(dk, { todos: list });
+      render();
+    },
+    quicknote: (f) => {
+      const sel = f.querySelector('select');
+      const ta = f.querySelector('textarea');
+      const t = ta.value.trim();
+      if (!t) { toast('先写一句没听懂的地方。'); return; }
+      S.notes.unshift({ id: 'n' + uid(), c: sel.value || '', t, d: false, at: Date.now() });
+      S.lastNoteCourse = sel.value || '';
+      clearOnRender.add(ta.id);
+      saveDoc('notes');
+      toast('记到问题本了');
+      render();
+    },
+    course: (f) => {
+      const id = f.dataset.id;
+      const c = courseById(id);
+      if (!c) return;
+      const status = document.getElementById('ce-status-' + id).value;
+      const scoreRaw = document.getElementById('ce-score-' + id).value.trim();
+      const hoursRaw = document.getElementById('ce-hours-' + id).value.trim();
+      if (scoreRaw && gpaOf(scoreRaw) == null) { toast('成绩写 0~100 的数字，或者 优秀 / 良好 / 中等 / 及格。'); return; }
+      if (status === 'passed' && scoreRaw && gpaOf(scoreRaw) === 0) { toast('60 分以下不算过。'); return; }
+      const wasPassed = c.status === 'passed';
+      c.status = status;
+      c.score = scoreRaw || null;
+      c.hours = Number(hoursRaw) > 0 ? Math.round(Number(hoursRaw)) : null;
+      S.openCourse = null;
+      ['ce-status-', 'ce-score-', 'ce-hours-'].forEach((p) => clearOnRender.add(p + id));
+      saveDoc('courses');
+      toast(status === 'passed' && !wasPassed && Number(c.credits) > 0 ? `过了！加 ${fmt(c.credits)} 学分` : '存好了');
+      render();
+    },
+    class: () => {
+      const v = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+      const start = parseInt(v('cfStart'), 10);
+      const end = parseInt(v('cfEnd'), 10);
+      if (!(start >= 1 && end >= start && end <= 14)) { toast('节次不对：开始的节要小于等于结束的节，范围 1~14。'); return; }
+      let courseId = v('cfCourse');
+      let coursesChanged = false;
+      if (!courseId || courseId === '__new') {
+        const name = v('cfNewName').trim();
+        if (!name) { toast('填一下课程名。'); return; }
+        const hours = parseInt(v('cfNewHours'), 10);
+        const nc = { id: 'c' + uid(), name, short: name, credits: null, group: 'other', kind: '理论', nature: '', fails: 0, status: 'enrolled', score: null, hours: hours > 0 ? hours : null, inBase: false };
+        S.courses.push(nc);
+        courseId = nc.id;
+        coursesChanged = true;
+      } else {
+        const co = courseById(courseId);
+        if (co && co.status === 'todo') { co.status = 'enrolled'; coursesChanged = true; }
+      }
+      const wf = parseInt(v('cfWeekFrom'), 10);
+      const wt = parseInt(v('cfWeekTo'), 10);
+      const item = {
+        id: S.editClass || 'k' + uid(),
+        courseId,
+        weekday: Number(v('cfWeekday')) || 1,
+        start, end,
+        time: v('cfTime') || '',
+        place: v('cfPlace').trim(),
+        parity: v('cfParity') || 'all',
+        weekFrom: wf > 0 ? wf : null,
+        weekTo: wt > 0 ? wt : null,
+      };
+      if (S.editClass) S.timetable = S.timetable.map((x) => (x.id === S.editClass ? item : x));
+      else S.timetable.push(item);
+      S.addingClass = false;
+      S.editClass = null;
+      freshForm();
+      saveDoc('timetable');
+      if (coursesChanged) saveDoc('courses');
+      toast('存好了');
+      render();
+    },
+    sem: (f) => {
+      const val = f.querySelector('input').value;
+      if (val && !/^\d{4}-\d{2}-\d{2}$/.test(val)) { toast('日期格式不对。'); return; }
+      S.settings = Object.assign({}, S.settings, { semesterStart: val || null });
+      clearOnRender.add('semStart');
+      saveDoc('settings');
+      toast(val ? '开学日期存好了' : '清掉了开学日期');
+      render();
+    },
+    import: () => {
+      const ta = document.getElementById('importText');
+      const text = ta ? ta.value.trim() : '';
+      if (!text) { toast('先把备份粘贴进来，或者选一个备份文件。'); return; }
+      const d = parseBackup(text);
+      if (!d) { if (S.confirmImport) { S.confirmImport = false; render(); } return; }
+      if (hasData() && !S.confirmImport) { S.confirmImport = true; render(); return; }
+      S.confirmImport = false;
+      if (!importData(d)) { render(); return; }
+      clearOnRender.add('importText');
+      S.openCourse = null; S.editClass = null; S.addingClass = false; S.copyFallback = null;
+      toast(`导入好了：${S.courses.length} 门课、${S.timetable.length} 节课表、${S.notes.length} 个问题`);
+      render();
+    },
+    sync: () => {
+      const v = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+      const owner = v('syOwner');
+      const repo = v('syRepo');
+      const token = v('syToken');
+      if (!owner || !repo) { toast('用户名和仓库名都要填。'); return; }
+      if (!/^(github_pat_|ghp_|gho_)[A-Za-z0-9_]{20,}$/.test(token)) { toast('令牌看起来不对：应该是 github_pat_ 开头的一长串，复制的时候别带空格。'); return; }
+      SY = Object.assign({}, SY, { owner, repo, token });
+      if (!lset('sync', SY)) { saveFailed(); return; }
+      clearOnRender.add('syToken');
+      SYN.error = '';
+      SYN.last = 0;
+      render();
+      syncNow(true);
+    },
+  };
+
+  document.addEventListener('click', (ev) => {
+    const tab = ev.target.closest('[data-tab]');
+    if (tab) {
+      S.tab = tab.dataset.tab;
+      lset('tab', S.tab);
+      S.confirmDel = null;
+      S.confirmImport = false;
+      render();
+      window.scrollTo(0, 0);
+      return;
+    }
+    const el = ev.target.closest('[data-act]');
+    if (!el || el.type === 'checkbox') return;
+    const act = el.dataset.act;
+    if (!/del$/.test(act)) S.confirmDel = null;
+    if (act !== 'syncoff') S.confirmSyncOff = false;
+    const fn = ACT[act];
+    if (fn && ready()) { ev.preventDefault(); fn(el); }
+  });
+  document.addEventListener('change', (ev) => {
+    const el = ev.target;
+    if (el.matches('input[type="checkbox"][data-act]')) { const fn = ACT[el.dataset.act]; if (fn && ready()) fn(el); return; }
+    if (el.id === 'cfCourse') syncNewCourse();
+    if (el.id === 'timerCourse') { S.timerSel.courseId = el.value; lset('timerSel', S.timerSel); }
+    if (el.id === 'importFile' && el.files && el.files[0]) {
+      const file = el.files[0];
+      if (file.size > 5 * 1024 * 1024) { toast('这个文件太大了，不像是备份。'); el.value = ''; return; }
+      const r = new FileReader();
+      r.onload = () => {
+        const ta = document.getElementById('importText');
+        if (ta) ta.value = String(r.result || '');
+        toast('文件读进来了，点「导入」。');
+      };
+      r.onerror = () => toast('这个文件读不了。');
+      r.readAsText(file);
+    }
+  });
+  document.addEventListener('submit', (ev) => {
+    const f = ev.target.closest('form[data-form]');
+    if (!f) return;
+    ev.preventDefault();
+    if (!ready()) return;
+    const fn = FORMS[f.dataset.form];
+    if (fn) fn(f);
+  });
+  document.addEventListener('focusin', (ev) => { if (ev.target.id === 'copyBox') ev.target.select(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (T && T.running) { requestWake(); tick(); }
+    render();
+    if (syncOn() && Date.now() - SYN.last > 20000) syncNow(false);
+  });
+  window.addEventListener('online', () => scheduleSync(500));
+
+  let lastDay = today();
+  setInterval(() => { const d = today(); if (d !== lastDay) { lastDay = d; render(); } }, 60000);
+
+  function installOffline() {
+    // Only when the page comes from a website (https or localhost): cache it so it opens with no internet,
+    // and give the phone what it needs to add it to the home screen as an app.
+    if (!/^https?:$/.test(location.protocol) || !('serviceWorker' in navigator)) return;
+    [['manifest', 'manifest.webmanifest'], ['icon', 'icon-192.png'], ['apple-touch-icon', 'icon-180.png']].forEach(([rel, href]) => {
+      const l = document.createElement('link');
+      l.rel = rel;
+      l.href = href;
+      document.head.appendChild(l);
+    });
+    navigator.serviceWorker.register('sw.js').catch(() => { /* no offline cache here */ });
+  }
+  function boot() {
+    render();
+    startLocal();
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) { /* ignore */ }
+    installOffline();
+    if (syncOn()) syncNow(false);
+  }
+  boot();
+})();
+</script>
+
+</body></html>
