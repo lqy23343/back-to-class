@@ -171,11 +171,11 @@ b.m { background: var(--bad); }
 .rules { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
 .rule-line { margin: 0; font-size: 13px; color: var(--warn); }
 
+.note-groups { display: grid; gap: 24px; }
+.note-group { display: grid; gap: 10px; min-width: 0; }
 .notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .note-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
-.note-card.done .note-text { color: var(--muted); }
 .note-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
-.tag { font-size: 12px; color: var(--accent); background: var(--accent-soft); padding: 1px 8px; border-radius: 999px; }
 .note-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .answer { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--sunken); border-radius: 8px; padding: 10px 12px; font-size: 14px; line-height: 1.7; }
 .note-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -247,6 +247,7 @@ b.m { background: var(--bad); }
     ['elective', '任选课', '不一定要重修，也可以换别的任选课凑学分。'],
   ];
   const FORM_IDS = ['cfCourse', 'cfNewName', 'cfNewHours', 'cfWeekday', 'cfTime', 'cfStart', 'cfEnd', 'cfPlace', 'cfParity', 'cfWeekFrom', 'cfWeekTo'];
+  const NOTES_ALL = '*'; // 问题本 shows every course; '' is the group of notes with no course
 
   const S = {
     mode: 'loading',
@@ -255,7 +256,7 @@ b.m { background: var(--bad); }
     readOnly: false, confirmImport: false, confirmSyncOff: false,
     tab: lget('tab', 'today'),
     openCourse: null, addingClass: false, editClass: null, confirmDel: null,
-    notesFilter: 'open', copyFallback: null, lastNoteCourse: '',
+    notesCourse: NOTES_ALL, noteEdit: null, copyFallback: null, lastNoteCourse: '',
     timerSel: lget('timerSel', { courseId: '', minutes: 25 }),
   };
   if (!['today', 'timetable', 'credits', 'notes'].includes(S.tab)) S.tab = 'today';
@@ -792,7 +793,7 @@ b.m { background: var(--bad); }
     const weekMin = weekDays(now).reduce((s, d) => s + focusMinutes(dayKey(d)), 0);
     h += `<section class="block"><div class="row-between"><h2 class="h">这一周</h2><span class="sub">本周专心学了 ${weekMin} 分钟</span></div>${weekStrip(now)}</section>`;
     h += todosBlock(day);
-    h += `<section class="block"><h2 class="h">没听懂的，记一句</h2><form class="stack" data-form="quicknote">${noteFields('qn')}</form></section>`;
+    h += `<section class="block"><h2 class="h">没听懂的，记一句</h2><form class="stack" data-form="quicknote">${noteFields('qn', S.lastNoteCourse)}</form></section>`;
     return h;
   }
   function energyNote(energy, classes, day) {
@@ -885,8 +886,8 @@ b.m { background: var(--bad); }
       : `<p class="sub">三个够了，先把这些做完。</p>`;
     return `<section class="block"><h2 class="h">今天的小目标</h2>${list}${form}</section>`;
   }
-  function noteFields(p) {
-    return `<label>哪门课<select id="${p}Course">${courseOptions(S.lastNoteCourse)}</select></label>
+  function noteFields(p, sel) {
+    return `<label>哪门课<select id="${p}Course">${courseOptions(sel)}</select></label>
       <textarea id="${p}Text" rows="2" maxlength="300" placeholder="比如：TCP 三次握手为什么不能只握两次？" aria-label="没听懂的地方"></textarea>
       <button class="btn">记到问题本</button>`;
   }
@@ -1079,30 +1080,54 @@ b.m { background: var(--bad); }
     const d = cn(ts);
     return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
+  const noteCourse = (n) => (n.c && courseById(n.c) ? n.c : '');
+  // One group per course, in the order of the 学分 page; notes with no course (or whose course was deleted) go last.
+  function noteGroups() {
+    const by = new Map();
+    S.notes.forEach((n) => {
+      const k = noteCourse(n);
+      if (!by.has(k)) by.set(k, []);
+      by.get(k).push(n);
+    });
+    const keys = S.courses.map((c) => c.id).filter((id) => by.has(id));
+    if (by.has('')) keys.push('');
+    return keys.map((k) => ({ k, name: k ? courseName(k) : '没分课', list: by.get(k) }));
+  }
+  function shownNoteGroups() {
+    const groups = noteGroups();
+    if (S.notesCourse !== NOTES_ALL && !groups.some((g) => g.k === S.notesCourse)) S.notesCourse = NOTES_ALL;
+    return { groups, shown: S.notesCourse === NOTES_ALL ? groups : groups.filter((g) => g.k === S.notesCourse) };
+  }
   function noteCard(n) {
     const delKey = 'note:' + n.id;
     const answer = n.a ? `<div class="answer">${esc(n.a)}</div>` : '';
-    return `<li class="note-card${n.d ? ' done' : ''}">
-      <div class="note-meta">${n.c && courseName(n.c) ? `<span class="tag">${esc(courseName(n.c))}</span>` : ''}<span>${esc(fmtDate(n.at))}</span>${n.d ? '<span>· 懂了</span>' : ''}</div>
+    const actions = S.noteEdit === n.id
+      ? `<label>挪到哪门课<select id="nm-${esc(n.id)}" data-note="${esc(n.id)}">${courseOptions(noteCourse(n))}</select></label>
+        <div class="note-actions"><button class="btn ghost sm" data-act="nmove-cancel">不挪了</button></div>`
+      : `<div class="note-actions"><button class="btn ghost sm" data-act="nmove" data-id="${esc(n.id)}">改课程</button><button class="btn ${S.confirmDel === delKey ? 'danger' : 'ghost'} sm" data-act="ndel" data-id="${esc(n.id)}">${S.confirmDel === delKey ? '确定删掉' : '删'}</button></div>`;
+    return `<li class="note-card">
+      <div class="note-meta"><span>${esc(fmtDate(n.at))}</span></div>
       <div class="note-text">${esc(n.t)}</div>
       ${answer}
-      <div class="note-actions"><button class="btn ghost sm" data-act="ndone" data-id="${esc(n.id)}">${n.d ? '还没懂' : '懂了'}</button><button class="btn ${S.confirmDel === delKey ? 'danger' : 'ghost'} sm" data-act="ndel" data-id="${esc(n.id)}">${S.confirmDel === delKey ? '确定删掉' : '删'}</button></div>
+      ${actions}
     </li>`;
   }
   function viewNotes() {
-    const filter = S.notesFilter;
-    const openCount = S.notes.filter((n) => !n.d).length;
-    const list = S.notes.filter((n) => filter === 'all' || !n.d);
+    const { groups, shown } = shownNoteGroups();
+    const pick = S.notesCourse;
     let h = `<section class="block"><h1 class="h1">问题本</h1>
-      <p class="muted">没听懂的都记在这。可以问老师、问同学，或者点「复制没懂的」，回电脑上发给 Claude Code。</p>
-      <form class="stack" data-form="quicknote">${noteFields('nn')}</form></section>`;
+      <p class="muted">没听懂的都记在这，按课分开，一直留着，复习的时候翻。想让 Claude 讲，点「复制」，回电脑上发给 Claude Code。</p>
+      <form class="stack" data-form="quicknote">${noteFields('nn', pick !== NOTES_ALL && pick ? pick : S.lastNoteCourse)}</form></section>`;
+    if (!S.notes.length) return h + `<section class="block"><p class="muted">还没记过问题。</p></section>`;
+    const chip = (k, label, n) => `<button class="chip${pick === k ? ' on' : ''}" data-act="ncourse" data-v="${esc(k)}" aria-pressed="${pick === k}">${esc(label)} ${n}</button>`;
     h += `<section class="block">
-      <div class="row-between"><div class="chips" role="group" aria-label="筛选">
-        <button class="chip${filter === 'open' ? ' on' : ''}" data-act="nfilter" data-v="open" aria-pressed="${filter === 'open'}">没懂的 ${openCount}</button>
-        <button class="chip${filter === 'all' ? ' on' : ''}" data-act="nfilter" data-v="all" aria-pressed="${filter === 'all'}">全部 ${S.notes.length}</button>
-      </div>${openCount ? '<button class="btn ghost sm" data-act="ncopy">复制没懂的</button>' : ''}</div>
+      <div class="chips" role="group" aria-label="按课程看">${chip(NOTES_ALL, '全部', S.notes.length)}${groups.map((g) => chip(g.k, g.name, g.list.length)).join('')}</div>
+      <div class="row-end"><button class="btn ghost sm" data-act="ncopy">${pick === NOTES_ALL ? '复制全部' : `复制「${esc(shown[0].name)}」`}</button></div>
       ${copyBox()}
-      ${list.length ? `<ul class="notes">${list.map(noteCard).join('')}</ul>` : `<p class="muted">${filter === 'open' ? '现在没有没懂的问题。' : '还没记过问题。'}</p>`}
+      <div class="note-groups">${shown.map((g) => `<div class="note-group">
+        <div class="group-h"><h2 class="h">${esc(g.name)}</h2><span class="sub">${g.list.length} 条</span></div>
+        <ul class="notes">${g.list.map(noteCard).join('')}</ul>
+      </div>`).join('')}</div>
     </section>`;
     return h;
   }
@@ -1322,15 +1347,15 @@ b.m { background: var(--bad); }
       toast('删掉了');
       render();
     },
-    nfilter: (el) => { S.notesFilter = el.dataset.v === 'all' ? 'all' : 'open'; render(); },
-    ndone: (el) => {
-      const n = S.notes.find((x) => x.id === el.dataset.id);
-      if (!n) return;
-      n.d = !n.d;
-      saveDoc('notes');
-      if (n.d) toast('懂了一个。');
+    ncourse: (el) => {
+      S.notesCourse = el.dataset.v;
+      S.noteEdit = null;
+      S.copyFallback = null;
+      clearOnRender.add('nnCourse');
       render();
     },
+    nmove: (el) => { S.noteEdit = el.dataset.id; render(); },
+    'nmove-cancel': () => { S.noteEdit = null; render(); },
     ndel: (el) => {
       const id = el.dataset.id;
       if (S.confirmDel !== 'note:' + id) { S.confirmDel = 'note:' + id; render(); return; }
@@ -1340,8 +1365,13 @@ b.m { background: var(--bad); }
       render();
     },
     ncopy: () => {
-      const open = S.notes.filter((n) => !n.d);
-      const text = '我的问题本（还没懂的）：\n' + open.map((n, i) => `${i + 1}. ${n.c && courseName(n.c) ? '[' + courseName(n.c) + '] ' : ''}${n.t}`).join('\n');
+      const { shown } = shownNoteGroups();
+      if (!shown.length) return;
+      const day = (ts) => { const d = cn(ts); return `${d.getMonth() + 1}月${d.getDate()}日`; };
+      const lines = (g) => g.list.map((n, i) => `${i + 1}. ${n.t}${n.at ? `（${day(n.at)}）` : ''}`).join('\n');
+      const text = S.notesCourse === NOTES_ALL
+        ? `我的问题本（${S.notes.length} 条）：\n` + shown.map((g) => `\n【${g.name}】\n${lines(g)}`).join('\n')
+        : `我的问题本 · ${shown[0].name}（${shown[0].list.length} 条）：\n${lines(shown[0])}`;
       copyText(text, '问题');
     },
     backup: () => copyText(backupJson(), '全部记录'),
@@ -1389,11 +1419,12 @@ b.m { background: var(--bad); }
       const ta = f.querySelector('textarea');
       const t = ta.value.trim();
       if (!t) { toast('先写一句没听懂的地方。'); return; }
-      S.notes.unshift({ id: 'n' + uid(), c: sel.value || '', t, d: false, at: Date.now() });
-      S.lastNoteCourse = sel.value || '';
+      const c = sel.value || '';
+      S.notes.unshift({ id: 'n' + uid(), c, t, at: Date.now() });
+      S.lastNoteCourse = c;
       clearOnRender.add(ta.id);
       saveDoc('notes');
-      toast('记到问题本了');
+      toast(c ? `记到「${courseName(c)}」了` : '记好了，在「没分课」里');
       render();
     },
     course: (f) => {
@@ -1519,6 +1550,16 @@ b.m { background: var(--bad); }
   document.addEventListener('change', (ev) => {
     const el = ev.target;
     if (el.matches('input[type="checkbox"][data-act]')) { const fn = ACT[el.dataset.act]; if (fn && ready()) fn(el); return; }
+    if (el.dataset.note) {
+      const n = S.notes.find((x) => x.id === el.dataset.note);
+      if (!n || !ready()) return;
+      n.c = el.value;
+      S.noteEdit = null;
+      saveDoc('notes');
+      toast(el.value ? `挪到「${courseName(el.value)}」了` : '挪到「没分课」了');
+      render();
+      return;
+    }
     if (el.id === 'cfCourse') syncNewCourse();
     if (el.id === 'timerCourse') { S.timerSel.courseId = el.value; lset('timerSel', S.timerSel); }
     if (el.id === 'importFile' && el.files && el.files[0]) {

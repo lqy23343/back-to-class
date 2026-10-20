@@ -1,10 +1,11 @@
 // 回到课堂：离线缓存。第一次打开时把页面存下来，之后没网也能打开。
 // 改了页面以后，把下面的版本号加 1，手机上下次打开就会换成新版。
-const CACHE = 'hdkt-v1';
+const CACHE = 'hdkt-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the browser's HTTP cache, so a new version never stores an old copy of the page.
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
